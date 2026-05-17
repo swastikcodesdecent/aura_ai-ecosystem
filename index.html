@@ -1,0 +1,3411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AURA — AI Companion Workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+  // ── PASTE YOUR FIREBASE CONFIG HERE ──────────────────────────
+  const firebaseConfig = {
+    apiKey: "AIzaSyCoRxV90LHWQnyH73-25IP3RS6LBh8_fhQ",
+    authDomain: "aura-ai-web-5d975.firebaseapp.com",
+    projectId: "aura-ai-web-5d975",
+    storageBucket: "aura-ai-web-5d975.firebasestorage.app",
+    messagingSenderId: "779712956436",
+    appId: "1:779712956436:web:78c05bb368162656f7bf01"
+  };
+  // ─────────────────────────────────────────────────────────────
+
+  const app      = initializeApp(firebaseConfig);
+  const auth     = getAuth(app);
+  const provider = new GoogleAuthProvider();
+
+  /* expose to global scope so non-module scripts can call them */
+  window._auraAuth     = auth;
+  window._auraProvider = provider;
+  window._signInGoogle = () => signInWithPopup(auth, provider);
+  window._signOutAura  = () => signOut(auth);
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // Hide login screen, show app
+      document.getElementById('loginScreen').style.display  = 'none';
+      document.getElementById('app').style.display          = 'flex';
+      // Populate navbar avatar
+      const img = document.getElementById('navUserAvatar');
+      const init = document.getElementById('navUserInitial');
+      const nameEl = document.getElementById('navUserName');
+      if (user.photoURL) {
+        img.src = user.photoURL;
+        img.style.display = 'block';
+        init.style.display = 'none';
+      } else {
+        init.textContent = (user.displayName || user.email || 'U')[0].toUpperCase();
+        init.style.display = 'flex';
+        img.style.display = 'none';
+      }
+      if (nameEl) nameEl.textContent = (user.displayName || user.email || '').split(' ')[0];
+      // Show sign-out btn
+      document.getElementById('signOutBtn').style.display = 'flex';
+      document.getElementById('navUserChip').style.display = 'flex';
+    } else {
+      // Show login screen, hide app
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('app').style.display         = 'none';
+      document.getElementById('navUserChip').style.display = 'none';
+      document.getElementById('signOutBtn').style.display  = 'none';
+    }
+  });
+</script>
+
+<style>
+/* ============================================================
+   AURA AI COMPANION WORKSPACE — MASTER STYLESHEET
+   ============================================================ */
+
+:root {
+  --aura-primary: #00d4ff;
+  --aura-secondary: #7b2fff;
+  --aura-accent: #ff6b35;
+  --aura-green: #00ff9d;
+  --aura-pink: #ff2d9e;
+  --aura-gold: #ffd700;
+
+  --bg-void: #020408;
+  --bg-deep: #040810;
+  --bg-base: #060c18;
+  --bg-panel: rgba(8, 18, 35, 0.85);
+  --bg-glass: rgba(0, 212, 255, 0.04);
+  --bg-glass-hover: rgba(0, 212, 255, 0.08);
+
+  --border-glow: rgba(0, 212, 255, 0.25);
+  --border-subtle: rgba(0, 212, 255, 0.1);
+  --border-active: rgba(0, 212, 255, 0.6);
+
+  --text-primary: #e8f4ff;
+  --text-secondary: rgba(232, 244, 255, 0.65);
+  --text-muted: rgba(232, 244, 255, 0.35);
+  --text-accent: #00d4ff;
+
+  --shadow-glow: 0 0 30px rgba(0, 212, 255, 0.15), 0 0 60px rgba(0, 212, 255, 0.05);
+  --shadow-panel: 0 8px 40px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 212, 255, 0.05);
+
+  --font-display: 'Orbitron', sans-serif;
+  --font-body: 'Rajdhani', sans-serif;
+  --font-code: 'DM Mono', monospace;
+  --font-accent: 'Space Mono', monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 50px;
+
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-void);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  min-height: 100vh;
+  position: relative;
+  cursor: default;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: var(--aura-primary); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--aura-secondary); }
+
+/* ============================================================
+   CANVAS BACKGROUND
+   ============================================================ */
+#bg-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ============================================================
+   AMBIENT ORBS
+   ============================================================ */
+.ambient-orbs {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.12;
+  animation: orbFloat 20s ease-in-out infinite;
+}
+
+.orb-1 {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, #00d4ff 0%, transparent 70%);
+  top: -200px; left: -200px;
+  animation-delay: 0s;
+}
+.orb-2 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, #7b2fff 0%, transparent 70%);
+  bottom: -150px; right: -150px;
+  animation-delay: -7s;
+}
+.orb-3 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, #ff6b35 0%, transparent 70%);
+  top: 40%; left: 40%;
+  animation-delay: -14s;
+  opacity: 0.06;
+}
+
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -40px) scale(1.05); }
+  66% { transform: translate(-20px, 30px) scale(0.95); }
+}
+
+/* ============================================================
+   MAIN LAYOUT
+   ============================================================ */
+#app {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   TOPBAR
+   ============================================================ */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: rgba(4, 8, 16, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 30px rgba(0,0,0,0.4);
+}
+
+.topbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.4em;
+  color: var(--aura-primary);
+  text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+  animation: glitchShift 12s ease-in-out infinite;
+  cursor: default;
+  user-select: none;
+}
+
+.logo-icon {
+  width: 36px; height: 36px;
+  background: transparent;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+  animation: logoPulse 3s ease-in-out infinite;
+  color: var(--aura-primary);
+}
+
+@keyframes logoPulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(0, 212, 255, 0.4); }
+  50% { box-shadow: 0 0 25px rgba(0, 212, 255, 0.7), 0 0 50px rgba(0, 212, 255, 0.3); }
+}
+
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 212, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+}
+
+.nav-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: var(--transition);
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.nav-tab.active {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(123, 47, 255, 0.2));
+  color: var(--aura-primary);
+  border: 1px solid var(--border-glow);
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.15), inset 0 0 10px rgba(0, 212, 255, 0.05);
+}
+
+.nav-tab:hover:not(.active) {
+  background: rgba(0, 212, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.topbar-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  letter-spacing: 0.06em;
+}
+
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--aura-green);
+  box-shadow: 0 0 8px var(--aura-green);
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.api-config-btn {
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 107, 53, 0.15);
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  color: var(--aura-accent);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  letter-spacing: 0.06em;
+}
+
+.api-config-btn:hover {
+  background: rgba(255, 107, 53, 0.25);
+  box-shadow: 0 0 12px rgba(255, 107, 53, 0.3);
+}
+
+/* ============================================================
+   AURA FACE — HERO SECTION
+   ============================================================ */
+.hero-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36px 20px 32px;
+  position: relative;
+}
+
+.aura-face-container {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aura-face-rings {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid;
+  animation: ringPulse 4s ease-in-out infinite;
+}
+
+.ring-1 {
+  inset: -15px;
+  border-color: rgba(0, 212, 255, 0.4);
+  animation-delay: 0s;
+  animation-name: ringRotate1;
+  animation-duration: 12s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.ring-2 {
+  inset: -30px;
+  border-color: rgba(123, 47, 255, 0.2);
+  animation-delay: 0s;
+  animation-name: ringRotate2;
+  animation-duration: 18s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.ring-3 {
+  inset: -50px;
+  border-color: rgba(0, 255, 157, 0.12);
+  animation-delay: 0s;
+  animation-name: ringPulse;
+  animation-duration: 6s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+/* Ring decorations — tick marks */
+.ring-1::before, .ring-2::before {
+  content: '';
+  position: absolute;
+  top: -3px; left: 50%;
+  transform: translateX(-50%);
+  width: 4px; height: 4px;
+  background: var(--aura-primary);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--aura-primary);
+}
+.ring-2::before {
+  background: var(--aura-secondary);
+  box-shadow: 0 0 8px var(--aura-secondary);
+  top: auto;
+  bottom: -3px;
+}
+
+@keyframes ringRotate1 {
+  0% { transform: rotate(0deg); opacity: 0.7; }
+  50% { opacity: 0.4; }
+  100% { transform: rotate(360deg); opacity: 0.7; }
+}
+@keyframes ringRotate2 {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(-180deg) scale(1.03); }
+  100% { transform: rotate(-360deg) scale(1); }
+}
+
+@keyframes ringPulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.05); opacity: 0.15; }
+}
+
+.aura-face {
+  width: 160px;
+  height: 160px;
+  position: relative;
+  animation: floatY 7s ease-in-out infinite;
+}
+
+.face-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.45)) drop-shadow(0 0 5px rgba(0,212,255,0.2));
+  transition: filter 0.5s ease;
+}
+
+/* Face state modifiers */
+.aura-face.listening .face-svg { filter: drop-shadow(0 0 30px rgba(0, 255, 157, 0.7)) drop-shadow(0 0 8px rgba(0,255,157,0.3)); }
+.aura-face.thinking .face-svg { filter: drop-shadow(0 0 30px rgba(123, 47, 255, 0.7)) drop-shadow(0 0 8px rgba(123,47,255,0.3)); }
+.aura-face.speaking .face-svg { filter: drop-shadow(0 0 35px rgba(0, 212, 255, 0.8)) drop-shadow(0 0 10px rgba(0,212,255,0.4)); }
+.aura-face.coding .face-svg { filter: drop-shadow(0 0 30px rgba(255, 107, 53, 0.7)) drop-shadow(0 0 8px rgba(255,107,53,0.3)); }
+.aura-face.happy .face-svg { filter: drop-shadow(0 0 28px rgba(255, 215, 0, 0.5)) drop-shadow(0 0 6px rgba(0,212,255,0.3)); }
+
+/* Eye animations */
+.eye-left, .eye-right {
+  transform-origin: center;
+  transform-box: fill-box;
+  transition: transform 0.12s ease;
+}
+
+/* Iris glow animation */
+.iris-glow-l, .iris-glow-r {
+  animation: irisGlow 3s ease-in-out infinite;
+}
+.iris-glow-r { animation-delay: -1.5s; }
+
+@keyframes irisGlow {
+  0%, 100% { opacity: 0.7; r: 10; }
+  50% { opacity: 1; r: 11; }
+}
+
+/* Scan line inside eye */
+.eye-scan-l { animation: eyeScan 2.5s ease-in-out infinite; }
+.eye-scan-r { animation: eyeScan 2.5s ease-in-out infinite; animation-delay: -1.2s; }
+
+@keyframes eyeScan {
+  0% { transform: translateY(-14px); opacity: 0; }
+  20% { opacity: 0.6; }
+  80% { opacity: 0.6; }
+  100% { transform: translateY(14px); opacity: 0; }
+}
+
+.pupil-left, .pupil-right {
+  transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.mouth-path {
+  transition: d 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Mouth speaking animation */
+.aura-face.speaking .mouth-path {
+  animation: speakAnim 0.3s ease-in-out infinite alternate;
+}
+@keyframes speakAnim {
+  from { stroke-width: 2.5; }
+  to { stroke-width: 3.5; }
+}
+
+/* Forehead orb pulse */
+.forehead-orb { animation: foreheadPulse 4s ease-in-out infinite; }
+@keyframes foreheadPulse {
+  0%, 100% { opacity: 0.5; r: 2; }
+  50% { opacity: 1; r: 3; fill: rgba(0,212,255,0.9); }
+}
+
+/* Status LEDs enhanced */
+.status-led-l { animation: ledPulse 2s ease-in-out infinite; }
+.status-led-r { animation: ledPulse 3s ease-in-out infinite; animation-delay: -0.8s; }
+@keyframes ledPulse {
+  0%, 100% { opacity: 0.8; r: 2; }
+  50% { opacity: 0.15; r: 1.5; }
+}
+
+/* Floating particles around face */
+.face-particles {
+  position: absolute;
+  inset: -60px;
+  pointer-events: none;
+}
+
+.face-particle {
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: var(--aura-primary);
+  animation: particleOrbit linear infinite;
+  box-shadow: 0 0 6px var(--aura-primary);
+}
+
+@keyframes particleOrbit {
+  0% { transform: rotate(0deg) translateX(80px) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: rotate(360deg) translateX(80px) rotate(-360deg); opacity: 0; }
+}
+
+.aura-identity {
+  text-align: center;
+  margin-top: 20px;
+  margin-bottom: 8px;
+}
+
+.aura-name {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.55em;
+  background: linear-gradient(135deg, var(--aura-primary) 0%, #fff 40%, var(--aura-secondary) 70%, var(--aura-primary) 100%);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: textShimmer 5s linear infinite;
+  text-shadow: none;
+}
+
+@keyframes textShimmer {
+  0% { background-position: 0% center; }
+  100% { background-position: 300% center; }
+}
+
+.aura-tagline {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin-top: 6px;
+  font-family: var(--font-accent);
+  font-weight: 400;
+}
+
+.aura-emotion-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 5px 16px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 212, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.7rem;
+  color: var(--text-accent);
+  font-family: var(--font-display);
+  letter-spacing: 0.15em;
+  transition: var(--transition);
+  animation: borderGlow 4s ease-in-out infinite;
+}
+
+/* ============================================================
+   MAIN WORKSPACE
+   ============================================================ */
+.workspace {
+  flex: 1;
+  display: flex;
+  padding: 0 16px 80px;
+  gap: 12px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ============================================================
+   MICROPHONE PANEL — SIDEBAR
+   ============================================================ */
+.mic-panel {
+  width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.mic-button {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: rgba(0, 212, 255, 0.08);
+  border: 2px solid var(--border-glow);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-spring);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.mic-button.active {
+  background: rgba(0, 255, 157, 0.15);
+  border-color: var(--aura-green);
+  box-shadow: 0 0 20px rgba(0, 255, 157, 0.3), 0 0 40px rgba(0, 255, 157, 0.1);
+}
+
+.mic-button.listening {
+  animation: micPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 157, 0.3); }
+  50% { box-shadow: 0 0 35px rgba(0, 255, 157, 0.6), 0 0 60px rgba(0, 255, 157, 0.2); }
+}
+
+.mic-icon {
+  font-size: 1.2rem;
+  pointer-events: none;
+}
+
+.waveform-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  height: 60px;
+  justify-content: center;
+}
+
+.wave-bar {
+  width: 4px;
+  background: var(--aura-green);
+  border-radius: 2px;
+  transition: height 0.1s ease;
+  box-shadow: 0 0 4px var(--aura-green);
+}
+
+.mic-label {
+  font-family: var(--font-display);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+/* ============================================================
+   MAIN CONTENT AREA
+   ============================================================ */
+.main-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ============================================================
+   CHAT MODE — COMPACT
+   ============================================================ */
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 300px);
+  min-height: 360px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-panel);
+  overflow: hidden;
+  position: relative;
+}
+
+.chat-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--aura-primary), transparent);
+  opacity: 0.5;
+}
+
+.chat-header {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 212, 255, 0.025);
+  flex-shrink: 0;
+}
+
+.chat-header-title {
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--text-accent);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  text-transform: uppercase;
+}
+
+.chat-header-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.icon-btn {
+  width: 26px; height: 26px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 212, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.75rem;
+}
+
+.icon-btn:hover {
+  background: rgba(0, 212, 255, 0.12);
+  color: var(--aura-primary);
+  border-color: var(--border-glow);
+}
+
+/* Quick commands — compact */
+.quick-cmds {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 5px;
+  padding: 7px 14px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+.quick-cmds::-webkit-scrollbar { display: none; }
+
+.quick-cmd {
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 212, 255, 0.04);
+  border: 1px solid rgba(0, 212, 255, 0.12);
+  color: var(--text-muted);
+  font-size: 0.67rem;
+  font-family: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.quick-cmd::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(0,212,255,0.08), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.4s ease;
+}
+.quick-cmd:hover::before { transform: translateX(100%); }
+.quick-cmd:hover {
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--aura-primary);
+  border-color: rgba(0, 212, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scroll-behavior: smooth;
+}
+
+.message {
+  display: flex;
+  gap: 7px;
+  animation: msgAppear 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  max-width: 88%;
+}
+
+@keyframes msgAppear {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.message.user { 
+  align-self: flex-end; 
+  flex-direction: row-reverse;
+}
+.message.assistant { align-self: flex-start; }
+
+.msg-avatar {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  border: 1px solid var(--border-subtle);
+  margin-top: 2px;
+}
+.message.user .msg-avatar {
+  background: linear-gradient(135deg, var(--aura-secondary), var(--aura-primary));
+  box-shadow: 0 0 8px rgba(123, 47, 255, 0.35);
+}
+.message.assistant .msg-avatar {
+  background: rgba(0, 212, 255, 0.08);
+  border-color: var(--border-glow);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.15);
+}
+
+.msg-bubble {
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.87rem;
+  line-height: 1.58;
+  color: var(--text-primary);
+  position: relative;
+  word-break: break-word;
+  font-family: var(--font-accent);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+.message.user .msg-bubble {
+  background: linear-gradient(135deg, rgba(123, 47, 255, 0.22), rgba(0, 212, 255, 0.12));
+  border: 1px solid rgba(123, 47, 255, 0.28);
+  border-top-right-radius: 4px;
+  box-shadow: 0 3px 14px rgba(123, 47, 255, 0.12);
+}
+.message.assistant .msg-bubble {
+  background: rgba(0, 212, 255, 0.055);
+  border: 1px solid var(--border-subtle);
+  border-top-left-radius: 4px;
+  backdrop-filter: blur(10px);
+}
+
+.msg-bubble code {
+  font-family: var(--font-code);
+  background: rgba(0, 212, 255, 0.1);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.82em;
+  color: var(--aura-primary);
+}
+.msg-bubble pre {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 9px 10px;
+  overflow-x: auto;
+  margin-top: 6px;
+  font-family: var(--font-code);
+  font-size: 0.78em;
+}
+.msg-bubble strong { color: var(--aura-primary); font-weight: 600; }
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 12px;
+  background: rgba(0, 212, 255, 0.055);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  border-top-left-radius: 4px;
+  width: fit-content;
+}
+.typing-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--aura-primary);
+  animation: typingBounce 1.4s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* TTS button compact */
+.tts-btn {
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 212, 255, 0.07);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.tts-btn:hover { color: var(--aura-primary); border-color: var(--border-glow); }
+
+/* Chat input area — compact */
+.chat-input-area {
+  padding: 8px 10px;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(10px);
+  flex-shrink: 0;
+}
+
+.chat-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 7px;
+  background: rgba(0, 212, 255, 0.03);
+  border: 1.5px solid rgba(0, 212, 255, 0.14);
+  border-radius: var(--radius-pill);
+  padding: 7px 10px;
+  transition: var(--transition);
+  position: relative;
+}
+.chat-input-row::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, transparent, rgba(0,212,255,0.08), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.chat-input-row:focus-within {
+  border-color: rgba(0, 212, 255, 0.42);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.1), inset 0 0 15px rgba(0,212,255,0.025);
+  background: rgba(0, 212, 255, 0.04);
+}
+.chat-input-row:focus-within::before { opacity: 1; }
+
+.chat-textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 400;
+  line-height: 1.45;
+  resize: none;
+  max-height: 100px;
+  min-height: 20px;
+  scrollbar-width: thin;
+  letter-spacing: 0.02em;
+}
+.chat-textarea::placeholder { 
+  color: var(--text-muted); 
+  font-style: italic;
+  font-weight: 300;
+  font-size: 0.83rem;
+}
+
+.send-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--aura-primary), var(--aura-secondary));
+  border: none;
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-spring);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.28);
+}
+.send-btn:hover {
+  transform: scale(1.12);
+  box-shadow: 0 0 22px rgba(0, 212, 255, 0.5);
+}
+.send-btn:active { transform: scale(0.93); }
+
+.voice-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 255, 157, 0.08);
+  border: 1px solid rgba(0, 255, 157, 0.28);
+  color: var(--aura-green);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-spring);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.voice-btn.recording {
+  background: rgba(0, 255, 157, 0.22);
+  border-color: var(--aura-green);
+  box-shadow: 0 0 14px rgba(0, 255, 157, 0.4);
+  animation: micPulse 1s ease-in-out infinite;
+}
+.voice-btn:hover { transform: scale(1.1); }
+
+/* ============================================================
+   CODE MODE
+   ============================================================ */
+.code-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: calc(100vh - 280px);
+  min-height: 500px;
+}
+
+.code-input-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(20px);
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.code-input-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--aura-accent), transparent);
+  opacity: 0.65;
+}
+
+.code-input-label {
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  color: var(--aura-accent);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.code-prompt-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.38);
+  border: 1.5px solid rgba(255, 107, 53, 0.18);
+  border-radius: var(--radius-md);
+  padding: 11px 14px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 400;
+  resize: vertical;
+  min-height: 64px;
+  max-height: 140px;
+  outline: none;
+  transition: var(--transition);
+  line-height: 1.58;
+  letter-spacing: 0.02em;
+}
+.code-prompt-input:focus {
+  border-color: rgba(255, 107, 53, 0.52);
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.11), inset 0 0 14px rgba(255,107,53,0.035);
+  background: rgba(0, 0, 0, 0.46);
+}
+.code-prompt-input::placeholder { 
+  color: var(--text-muted); 
+  opacity: 0.6;
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
+.code-prompt-input::placeholder { color: var(--text-muted); }
+
+.code-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.code-tech-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tech-pill {
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+  background: rgba(0, 212, 255, 0.04);
+}
+
+.tech-pill.active, .tech-pill:hover {
+  background: rgba(255, 107, 53, 0.15);
+  border-color: rgba(255, 107, 53, 0.4);
+  color: var(--aura-accent);
+}
+
+.generate-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, var(--aura-accent), #ff2d9e);
+  border: none;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: var(--transition-spring);
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
+}
+
+.generate-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(255, 107, 53, 0.5);
+}
+
+.generate-btn:active { transform: translateY(0); }
+.generate-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* Code Editor Split */
+.code-editor-split {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  min-height: 0;
+}
+
+.editor-pane, .preview-pane {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.editor-pane::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--aura-secondary), transparent);
+  opacity: 0.5;
+}
+
+.preview-pane::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--aura-green), transparent);
+  opacity: 0.5;
+}
+
+.pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.pane-title {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.15em;
+  color: var(--text-accent);
+  display: flex; align-items: center; gap: 6px;
+}
+
+.preview-title { color: var(--aura-green); }
+
+.pane-actions { display: flex; gap: 6px; }
+
+.pane-btn {
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 212, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: var(--transition);
+  letter-spacing: 0.04em;
+  display: flex; align-items: center; gap: 4px;
+}
+
+.pane-btn:hover {
+  background: rgba(0, 212, 255, 0.12);
+  color: var(--aura-primary);
+}
+
+.code-display {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  font-family: var(--font-code);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: #abb2bf;
+  position: relative;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.code-display .token-keyword { color: #c678dd; }
+.code-display .token-string { color: #98c379; }
+.code-display .token-comment { color: #5c6370; font-style: italic; }
+.code-display .token-function { color: #61afef; }
+.code-display .token-number { color: #d19a66; }
+.code-display .token-tag { color: #e06c75; }
+.code-display .token-attr { color: #d19a66; }
+.code-display .token-value { color: #98c379; }
+
+.code-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--aura-primary);
+  animation: cursorBlink 1s step-end infinite;
+  vertical-align: text-bottom;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.code-placeholder {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.8;
+  font-family: var(--font-body);
+}
+
+.preview-frame {
+  flex: 1;
+  border: none;
+  background: #fff;
+  width: 100%;
+}
+
+.preview-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+}
+
+.preview-empty-icon { font-size: 2.5rem; opacity: 0.3; }
+
+/* ============================================================
+   VOICE COMMAND OVERLAY
+   ============================================================ */
+.voice-overlay {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: rgba(4, 8, 16, 0.9);
+  border: 1px solid var(--border-glow);
+  border-radius: var(--radius-xl);
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 0 40px rgba(0, 212, 255, 0.2);
+  z-index: 200;
+  transition: var(--transition-spring);
+  opacity: 0;
+  pointer-events: none;
+  min-width: 280px;
+  max-width: 90vw;
+}
+
+.voice-overlay.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.voice-overlay-waveform {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 28px;
+}
+
+.overlay-wave-bar {
+  width: 3px;
+  background: var(--aura-green);
+  border-radius: 2px;
+  box-shadow: 0 0 4px var(--aura-green);
+  animation: waveAnim 0.6s ease-in-out infinite;
+}
+
+.overlay-wave-bar:nth-child(2) { animation-delay: 0.1s; }
+.overlay-wave-bar:nth-child(3) { animation-delay: 0.2s; }
+.overlay-wave-bar:nth-child(4) { animation-delay: 0.3s; }
+.overlay-wave-bar:nth-child(5) { animation-delay: 0.4s; }
+
+@keyframes waveAnim {
+  0%, 100% { height: 4px; }
+  50% { height: 20px; }
+}
+
+.voice-overlay-text {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  color: var(--text-accent);
+  letter-spacing: 0.08em;
+  flex: 1;
+}
+
+.voice-overlay-command {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--aura-green);
+  font-weight: 600;
+}
+
+/* ============================================================
+   API CONFIG MODAL
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: var(--transition);
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal {
+  background: linear-gradient(135deg, rgba(6, 12, 24, 0.98), rgba(8, 18, 40, 0.98));
+  border: 1px solid var(--border-glow);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+  max-width: 480px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 212, 255, 0.1);
+  transform: scale(0.95);
+  transition: var(--transition-spring);
+}
+
+.modal-overlay.open .modal { transform: scale(1); }
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--aura-primary);
+  letter-spacing: 0.15em;
+}
+
+.modal-close {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: var(--transition);
+}
+
+.modal-close:hover { background: rgba(255, 255, 255, 0.12); color: var(--text-primary); }
+
+.form-group { margin-bottom: 18px; position: relative; }
+
+.form-label {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  color: var(--aura-primary);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  opacity: 0.8;
+}
+
+.form-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1.5px solid rgba(0, 212, 255, 0.15);
+  border-radius: var(--radius-md);
+  padding: 11px 16px;
+  color: var(--text-primary);
+  font-family: var(--font-code);
+  font-size: 0.82rem;
+  outline: none;
+  transition: var(--transition);
+  letter-spacing: 0.04em;
+}
+
+.form-input:focus {
+  border-color: rgba(0, 212, 255, 0.5);
+  box-shadow: 0 0 16px rgba(0, 212, 255, 0.12), inset 0 0 12px rgba(0,212,255,0.04);
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.form-input::placeholder { 
+  color: var(--text-muted); 
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.save-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, var(--aura-primary), var(--aura-secondary));
+  border: none;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: var(--transition-spring);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+  margin-top: 8px;
+}
+
+.save-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+}
+
+.form-note {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 14px;
+  line-height: 1.6;
+  padding: 10px;
+  background: rgba(255, 215, 0, 0.04);
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================================
+   NOTIFICATION TOAST
+   ============================================================ */
+.toast {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  background: rgba(0, 212, 255, 0.12);
+  border: 1px solid var(--border-glow);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  z-index: 2000;
+  transform: translateX(120%);
+  transition: var(--transition-spring);
+  max-width: 280px;
+  backdrop-filter: blur(10px);
+}
+
+.toast.show { transform: translateX(0); }
+.toast.success { border-color: rgba(0, 255, 157, 0.4); background: rgba(0, 255, 157, 0.08); }
+.toast.error { border-color: rgba(255, 45, 85, 0.4); background: rgba(255, 45, 85, 0.08); }
+
+/* ============================================================
+   BOTTOM MOBILE NAV
+   ============================================================ */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(4, 8, 16, 0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border-subtle);
+  padding: 10px 20px 16px;
+  z-index: 100;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* ============================================================
+   PROGRESS / STATUS BAR
+   ============================================================ */
+.progress-bar-container {
+  height: 2px;
+  background: var(--border-subtle);
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--aura-primary), var(--aura-secondary));
+  width: 0%;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 8px var(--aura-primary);
+}
+
+/* ============================================================
+   MODE PANELS — SHOW/HIDE
+   ============================================================ */
+.mode-panel { display: none; }
+.mode-panel.active { display: flex; flex-direction: column; height: 100%; }
+
+/* ============================================================
+   LOADING STATE
+   ============================================================ */
+.loading-shimmer {
+  background: linear-gradient(90deg, 
+    rgba(0, 212, 255, 0.05) 0%, 
+    rgba(0, 212, 255, 0.12) 50%, 
+    rgba(0, 212, 255, 0.05) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Spinner */
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border-subtle);
+  border-top-color: var(--aura-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.quick-cmds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 20px 0;
+}
+
+.quick-cmd {
+  padding: 5px 13px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 212, 255, 0.04);
+  border: 1px solid rgba(0, 212, 255, 0.12);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-family: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  position: relative;
+  overflow: hidden;
+}
+
+.quick-cmd::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(0,212,255,0.08), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.4s ease;
+}
+
+.quick-cmd:hover::before { transform: translateX(100%); }
+
+.quick-cmd:hover {
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--aura-primary);
+  border-color: rgba(0, 212, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   SCAN LINE EFFECT
+   ============================================================ */
+.scanline-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 212, 255, 0.012) 2px,
+    rgba(0, 212, 255, 0.012) 4px
+  );
+  opacity: 0.4;
+  animation: scanlineFlicker 8s ease-in-out infinite;
+}
+
+@keyframes scanlineFlicker {
+  0%, 95%, 100% { opacity: 0.4; }
+  96% { opacity: 0.15; }
+  97% { opacity: 0.45; }
+  98% { opacity: 0.2; }
+}
+
+/* Moving scanline sweep */
+.scanline-overlay::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  height: 120px;
+  background: linear-gradient(transparent, rgba(0,212,255,0.03), transparent);
+  animation: scanSweep 6s linear infinite;
+}
+
+@keyframes scanSweep {
+  0% { top: -120px; }
+  100% { top: 100vh; }
+}
+
+/* ============================================================
+   EXTRA GLOBAL ANIMATIONS
+   ============================================================ */
+@keyframes glitchShift {
+  0%, 90%, 100% { transform: translateX(0); clip-path: none; }
+  91% { transform: translateX(-3px); clip-path: inset(20% 0 60% 0); }
+  92% { transform: translateX(3px); clip-path: inset(60% 0 20% 0); }
+  93% { transform: translateX(0); clip-path: none; }
+}
+
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(0, 212, 255, 0.25); box-shadow: 0 0 0px rgba(0,212,255,0); }
+  50% { border-color: rgba(0, 212, 255, 0.6); box-shadow: 0 0 18px rgba(0,212,255,0.2); }
+}
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-6px) rotate(0.5deg); }
+  66% { transform: translateY(-3px) rotate(-0.5deg); }
+}
+
+@keyframes dataStream {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+/* Data stream background columns */
+.data-stream {
+  position: fixed;
+  top: 0;
+  width: 1px;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.data-stream::before {
+  content: attr(data-chars);
+  position: absolute;
+  top: 0;
+  font-family: var(--font-code);
+  font-size: 10px;
+  color: rgba(0,212,255,0.06);
+  line-height: 1.4;
+  writing-mode: vertical-rl;
+  letter-spacing: 2px;
+  animation: dataStream linear infinite;
+  animation-duration: var(--stream-dur, 12s);
+  animation-delay: var(--stream-delay, 0s);
+}
+
+/* ============================================================
+   RESPONSIVE — TABLET
+   ============================================================ */
+@media (max-width: 900px) {
+  .code-editor-split {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE — MOBILE
+   ============================================================ */
+@media (max-width: 640px) {
+  .topbar { padding: 10px 14px; }
+  .topbar-nav { display: none; }
+  .topbar-logo span { display: none; }
+  .topbar-status .status-indicator span { display: none; }
+  .mobile-nav { display: flex; }
+  .workspace { padding: 10px 10px 100px; flex-direction: column; }
+  .mic-panel { display: none; }
+  .hero-section { padding: 16px 16px 10px; }
+  .aura-face-container { width: 140px; height: 140px; }
+  .aura-face { width: 110px; height: 110px; }
+  .aura-name { font-size: 1.5rem; }
+  .chat-panel { height: calc(100vh - 240px); border-radius: var(--radius-lg); }
+  .code-panel { height: auto; }
+  .code-editor-split { grid-template-columns: 1fr; height: 400px; }
+  .editor-pane, .preview-pane { height: 200px; flex-shrink: 0; }
+  .message { max-width: 90%; }
+}
+
+@keyframes heroEntrance {
+  from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.hero-section {
+  animation: heroEntrance 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Aura name hover glitch */
+.aura-name:hover {
+  animation: textShimmer 1.5s linear infinite, glitchShift 0.8s ease-in-out;
+}
+
+@media (min-width: 1200px) {
+  .hero-section { flex-direction: row; justify-content: center; gap: 40px; align-items: flex-start; padding: 32px 40px 16px; }
+  .aura-identity { text-align: left; margin-top: 20px; }
+  .workspace { padding: 16px 24px 100px; }
+}
+
+/* ============================================================
+   LOGIN SCREEN
+   ============================================================ */
+#loginScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-void);
+  flex-direction: column;
+  gap: 0;
+}
+
+.login-card {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 52px 44px 44px;
+  background: rgba(6, 14, 28, 0.92);
+  border: 1px solid var(--border-glow);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 0 60px rgba(0,212,255,0.08), 0 24px 80px rgba(0,0,0,0.7);
+  width: 100%;
+  max-width: 400px;
+  animation: loginCardIn 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+
+@keyframes loginCardIn {
+  from { opacity:0; transform: translateY(32px) scale(0.95); }
+  to   { opacity:1; transform: translateY(0) scale(1); }
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 20%; right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--aura-primary), transparent);
+  opacity: 0.7;
+}
+
+.login-logo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.login-face-ring {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-face-ring::before,
+.login-face-ring::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(0,212,255,0.3);
+  animation: loginRing 6s linear infinite;
+}
+.login-face-ring::before { inset: -8px; animation-duration: 8s; }
+.login-face-ring::after  { inset: -18px; border-color: rgba(123,47,255,0.18); animation-direction: reverse; animation-duration: 12s; }
+
+@keyframes loginRing {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.login-title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.5em;
+  background: linear-gradient(135deg, var(--aura-primary), #fff 50%, var(--aura-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.login-subtitle {
+  font-family: var(--font-accent);
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.8;
+}
+
+.login-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+.google-signin-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 24px;
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: var(--transition-spring);
+  text-transform: uppercase;
+}
+
+.google-signin-btn:hover {
+  background: rgba(255,255,255,0.09);
+  border-color: rgba(255,255,255,0.28);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.google-signin-btn:active { transform: translateY(0); }
+
+.google-icon {
+  width: 20px; height: 20px;
+  flex-shrink: 0;
+}
+
+.login-note {
+  font-family: var(--font-accent);
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  text-align: center;
+  letter-spacing: 0.06em;
+  line-height: 1.7;
+}
+
+/* ============================================================
+   NAVBAR USER CHIP
+   ============================================================ */
+.nav-user-chip {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 12px 3px 3px;
+  border-radius: var(--radius-pill);
+  background: rgba(0,212,255,0.05);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: var(--transition);
+  position: relative;
+}
+
+.nav-user-chip:hover {
+  background: rgba(0,212,255,0.1);
+  border-color: var(--border-glow);
+}
+
+.nav-user-avatar-wrap {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1.5px solid var(--border-glow);
+  flex-shrink: 0;
+  position: relative;
+  box-shadow: 0 0 10px rgba(0,212,255,0.2);
+}
+
+#navUserAvatar {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+#navUserInitial {
+  width: 100%; height: 100%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--aura-primary), var(--aura-secondary));
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #000;
+}
+
+#navUserName {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Sign out button */
+.sign-out-btn {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: var(--radius-pill);
+  background: rgba(255,45,120,0.08);
+  border: 1px solid rgba(255,45,120,0.2);
+  color: rgba(255,100,140,0.85);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: var(--transition);
+  text-transform: uppercase;
+}
+.sign-out-btn:hover {
+  background: rgba(255,45,120,0.16);
+  border-color: rgba(255,45,120,0.4);
+  color: #ff6b9d;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Scan line overlay -->
+<div class="scanline-overlay"></div>
+
+<!-- Data stream columns -->
+<div class="data-stream" style="left:8%;--stream-dur:14s;--stream-delay:-3s" data-chars="01001010010110100101"></div>
+<div class="data-stream" style="left:18%;--stream-dur:11s;--stream-delay:-7s" data-chars="10110100101001011010"></div>
+<div class="data-stream" style="left:82%;--stream-dur:16s;--stream-delay:-1s" data-chars="01101001011010010101"></div>
+<div class="data-stream" style="left:91%;--stream-dur:13s;--stream-delay:-9s" data-chars="10010101101001010110"></div>
+
+<!-- Particle canvas -->
+<canvas id="bg-canvas"></canvas>
+
+<!-- Ambient orbs -->
+<div class="ambient-orbs">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ============================================================
+     LOGIN SCREEN
+     ============================================================ -->
+<div id="loginScreen" style="display:flex;">
+  <!-- reuse ambient background elements -->
+  <div class="login-card">
+    <div class="login-logo-wrap">
+      <div class="login-face-ring">
+        <svg width="56" height="56" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 14px rgba(0,212,255,0.5))">
+          <ellipse cx="80" cy="82" rx="72" ry="74" fill="rgba(5,14,30,0.95)" stroke="rgba(0,212,255,0.55)" stroke-width="1.5"/>
+          <ellipse cx="55" cy="68" rx="21" ry="17" fill="rgba(0,0,0,0.8)" stroke="rgba(0,212,255,0.65)" stroke-width="1.4"/>
+          <circle cx="55" cy="68" r="10" fill="none" stroke="#00d4ff" stroke-width="1.2" opacity="0.7"/>
+          <circle cx="55" cy="68" r="4" fill="#000810"/>
+          <ellipse cx="51" cy="64" rx="2.5" ry="2.2" fill="rgba(255,255,255,0.85)"/>
+          <ellipse cx="105" cy="68" rx="21" ry="17" fill="rgba(0,0,0,0.8)" stroke="rgba(0,212,255,0.65)" stroke-width="1.4"/>
+          <circle cx="105" cy="68" r="10" fill="none" stroke="#00d4ff" stroke-width="1.2" opacity="0.7"/>
+          <circle cx="105" cy="68" r="4" fill="#000810"/>
+          <ellipse cx="101" cy="64" rx="2.5" ry="2.2" fill="rgba(255,255,255,0.85)"/>
+          <path d="M55 106 Q80 120 105 106" fill="none" stroke="rgba(0,212,255,0.9)" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="80" cy="28" r="3" fill="rgba(0,212,255,0.7)" style="filter:url(#glow)"/>
+        </svg>
+      </div>
+      <div class="login-title">AURA</div>
+      <div class="login-subtitle">AI Companion Workspace<br>Sign in to continue</div>
+    </div>
+
+    <div class="login-divider"></div>
+
+    <button class="google-signin-btn" onclick="window._signInGoogle && window._signInGoogle().catch(e => alert('Sign-in failed: ' + e.message))">
+      <!-- Google "G" SVG -->
+      <svg class="google-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      </svg>
+      Continue with Google
+    </button>
+
+    <div class="login-note">
+      Your session is secured via Firebase Authentication.<br>
+      No passwords stored — Google handles everything.
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MAIN APP (hidden until signed in)
+     ============================================================ -->
+<div id="app" style="display:none;">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-logo">
+      <div class="logo-icon">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="10" cy="10" r="8.5" stroke="#00d4ff" stroke-width="1.2" opacity="0.6"/>
+          <circle cx="10" cy="10" r="5.5" stroke="#00d4ff" stroke-width="1" opacity="0.9"/>
+          <line x1="10" y1="1" x2="10" y2="4.5" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="10" y1="15.5" x2="10" y2="19" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="1" y1="10" x2="4.5" y2="10" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="15.5" y1="10" x2="19" y2="10" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="10" cy="10" r="2" fill="#00d4ff"/>
+        </svg>
+      </div>
+      <span>AURA</span>
+    </div>
+    <nav class="topbar-nav">
+      <button class="nav-tab active" onclick="switchMode('chat')" id="chatTab">
+        Chat
+      </button>
+      <button class="nav-tab" onclick="switchMode('code')" id="codeTab">
+        Code
+      </button>
+    </nav>
+    <div class="topbar-status">
+      <div class="status-indicator">
+        <div class="status-dot"></div>
+        <span>ONLINE</span>
+      </div>
+      <!-- User chip — shown after login -->
+      <div class="nav-user-chip" id="navUserChip" style="display:none;">
+        <div class="nav-user-avatar-wrap">
+          <img id="navUserAvatar" src="" alt="avatar">
+          <div id="navUserInitial"></div>
+        </div>
+        <span id="navUserName"></span>
+      </div>
+      <!-- Sign out -->
+      <button class="sign-out-btn" id="signOutBtn" style="display:none;" onclick="window._signOutAura && window._signOutAura()">
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M5 2H2v8h3M8 4l2 2-2 2M5 6h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sign Out
+      </button>
+    </div>
+  </header>
+
+  <!-- HERO — AURA FACE -->
+  <section class="hero-section">
+    <div class="aura-face-container">
+      <div class="aura-face-rings">
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="ring ring-3"></div>
+      </div>
+      <div class="face-particles" id="faceParticles"></div>
+      <div class="aura-face" id="auraFace">
+        <svg class="face-svg" id="faceSvg" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="faceGrad" cx="50%" cy="40%" r="60%">
+              <stop offset="0%" stop-color="#0d1f38"/>
+              <stop offset="70%" stop-color="#050e1e"/>
+              <stop offset="100%" stop-color="#020810"/>
+            </radialGradient>
+            <radialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.25"/>
+              <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="eyeGradL" cx="40%" cy="35%" r="70%">
+              <stop offset="0%" stop-color="#0055aa"/>
+              <stop offset="60%" stop-color="#002244"/>
+              <stop offset="100%" stop-color="#000810"/>
+            </radialGradient>
+            <radialGradient id="eyeGradR" cx="40%" cy="35%" r="70%">
+              <stop offset="0%" stop-color="#0055aa"/>
+              <stop offset="60%" stop-color="#002244"/>
+              <stop offset="100%" stop-color="#000810"/>
+            </radialGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+              <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="glowStrong">
+              <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+              <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="glowSoft">
+              <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+              <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <clipPath id="eyeClipL"><ellipse cx="55" cy="68" rx="18" ry="14"/></clipPath>
+            <clipPath id="eyeClipR"><ellipse cx="105" cy="68" rx="18" ry="14"/></clipPath>
+          </defs>
+
+          <!-- Face plate with subtle inner gradient -->
+          <ellipse cx="80" cy="82" rx="72" ry="74" fill="url(#faceGrad)" stroke="rgba(0,212,255,0.45)" stroke-width="1.5"/>
+          <!-- Glow aura -->
+          <ellipse cx="80" cy="82" rx="72" ry="74" fill="url(#glowGrad)" opacity="0.6">
+            <animate attributeName="opacity" values="0.4;0.7;0.4" dur="4s" repeatCount="indefinite"/>
+          </ellipse>
+
+          <!-- Panel lines — circuit details -->
+          <path d="M30 48 L50 40 L55 30" fill="none" stroke="rgba(0,212,255,0.18)" stroke-width="0.8"/>
+          <path d="M130 48 L110 40 L105 30" fill="none" stroke="rgba(0,212,255,0.18)" stroke-width="0.8"/>
+          <line x1="18" y1="88" x2="38" y2="88" stroke="rgba(0,212,255,0.15)" stroke-width="0.8"/>
+          <line x1="18" y1="93" x2="28" y2="93" stroke="rgba(0,212,255,0.08)" stroke-width="0.6"/>
+          <line x1="122" y1="88" x2="142" y2="88" stroke="rgba(0,212,255,0.15)" stroke-width="0.8"/>
+          <line x1="132" y1="93" x2="142" y2="93" stroke="rgba(0,212,255,0.08)" stroke-width="0.6"/>
+
+          <!-- Forehead panel -->
+          <rect x="62" y="18" width="36" height="4" rx="2" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.3)" stroke-width="0.5"/>
+          <!-- Small tick marks on forehead bar -->
+          <line x1="70" y1="18" x2="70" y2="22" stroke="rgba(0,212,255,0.4)" stroke-width="0.5"/>
+          <line x1="80" y1="18" x2="80" y2="22" stroke="rgba(0,212,255,0.4)" stroke-width="0.5"/>
+          <line x1="90" y1="18" x2="90" y2="22" stroke="rgba(0,212,255,0.4)" stroke-width="0.5"/>
+
+          <!-- Forehead orb -->
+          <circle cx="80" cy="28" r="5" fill="none" stroke="rgba(0,212,255,0.35)" stroke-width="1"/>
+          <circle class="forehead-orb" cx="80" cy="28" r="2.5" fill="rgba(0,212,255,0.6)" filter="url(#glow)"/>
+          <circle cx="80" cy="28" r="1" fill="#fff" opacity="0.7"/>
+
+          <!-- Left eye socket -->
+          <ellipse cx="55" cy="68" rx="21" ry="17" fill="rgba(0,0,0,0.75)" stroke="rgba(0,212,255,0.6)" stroke-width="1.5" filter="url(#glowSoft)"/>
+          <!-- Left eye iris fill -->
+          <g class="eye-left" clip-path="url(#eyeClipL)">
+            <ellipse cx="55" cy="68" rx="18" ry="14" fill="url(#eyeGradL)"/>
+            <!-- Iris rings -->
+            <circle cx="55" cy="68" r="11" fill="none" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
+            <circle class="iris-glow-l" cx="55" cy="68" r="10" fill="none" stroke="#00d4ff" stroke-width="1.5" opacity="0.7"/>
+            <!-- Pupil -->
+            <ellipse class="pupil-left" cx="55" cy="68" rx="5.5" ry="5.5" fill="#000810"/>
+            <ellipse class="pupil-left" cx="55" cy="68" rx="4" ry="4" fill="#000"/>
+            <!-- Specular highlights -->
+            <ellipse cx="51.5" cy="64.5" rx="2.8" ry="2.5" fill="rgba(255,255,255,0.85)"/>
+            <ellipse cx="57" cy="66" rx="1.2" ry="1" fill="rgba(255,255,255,0.5)"/>
+            <!-- Iris scan line -->
+            <rect class="eye-scan-l" x="37" y="67" width="36" height="0.8" fill="rgba(0,212,255,0.5)"/>
+          </g>
+
+          <!-- Right eye socket -->
+          <ellipse cx="105" cy="68" rx="21" ry="17" fill="rgba(0,0,0,0.75)" stroke="rgba(0,212,255,0.6)" stroke-width="1.5" filter="url(#glowSoft)"/>
+          <!-- Right eye iris fill -->
+          <g class="eye-right" clip-path="url(#eyeClipR)">
+            <ellipse cx="105" cy="68" rx="18" ry="14" fill="url(#eyeGradR)"/>
+            <circle cx="105" cy="68" r="11" fill="none" stroke="#00d4ff" stroke-width="1" opacity="0.5"/>
+            <circle class="iris-glow-r" cx="105" cy="68" r="10" fill="none" stroke="#00d4ff" stroke-width="1.5" opacity="0.7"/>
+            <ellipse class="pupil-right" cx="105" cy="68" rx="5.5" ry="5.5" fill="#000810"/>
+            <ellipse class="pupil-right" cx="105" cy="68" rx="4" ry="4" fill="#000"/>
+            <ellipse cx="101.5" cy="64.5" rx="2.8" ry="2.5" fill="rgba(255,255,255,0.85)"/>
+            <ellipse cx="107" cy="66" rx="1.2" ry="1" fill="rgba(255,255,255,0.5)"/>
+            <rect class="eye-scan-r" x="87" y="67" width="36" height="0.8" fill="rgba(0,212,255,0.5)"/>
+          </g>
+
+          <!-- Nose bridge -->
+          <path d="M74 82 Q80 93 86 82" fill="none" stroke="rgba(0,212,255,0.3)" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="80" cy="92" r="1.5" fill="rgba(0,212,255,0.25)"/>
+
+          <!-- Mouth group -->
+          <g id="mouthGroup">
+            <!-- Mouth glow bg -->
+            <path d="M58 108 Q80 118 102 108" fill="none" stroke="rgba(0,212,255,0.15)" stroke-width="6" stroke-linecap="round"/>
+            <!-- Main mouth -->
+            <path class="mouth-path" id="mouthPath" d="M58 108 Q80 118 102 108" fill="none" stroke="rgba(0,212,255,0.9)" stroke-width="2.5" stroke-linecap="round" filter="url(#glow)"/>
+            <!-- Mouth corner dots -->
+            <circle cx="58" cy="108" r="2" fill="rgba(0,212,255,0.6)" filter="url(#glowSoft)"/>
+            <circle cx="102" cy="108" r="2" fill="rgba(0,212,255,0.6)" filter="url(#glowSoft)"/>
+          </g>
+
+          <!-- Chin detail panel -->
+          <rect x="68" y="136" width="24" height="3" rx="1.5" fill="rgba(0,212,255,0.15)" stroke="rgba(0,212,255,0.3)" stroke-width="0.5"/>
+          <line x1="80" y1="136" x2="80" y2="139" stroke="rgba(0,212,255,0.4)" stroke-width="0.5"/>
+
+          <!-- Temple connectors -->
+          <line x1="8" y1="68" x2="24" y2="68" stroke="rgba(0,212,255,0.35)" stroke-width="1.5"/>
+          <line x1="8" y1="73" x2="18" y2="73" stroke="rgba(0,212,255,0.2)" stroke-width="0.8"/>
+          <circle cx="8" cy="68" r="2" fill="none" stroke="rgba(0,212,255,0.4)" stroke-width="0.8"/>
+          <line x1="152" y1="68" x2="136" y2="68" stroke="rgba(0,212,255,0.35)" stroke-width="1.5"/>
+          <line x1="152" y1="73" x2="142" y2="73" stroke="rgba(0,212,255,0.2)" stroke-width="0.8"/>
+          <circle cx="152" cy="68" r="2" fill="none" stroke="rgba(0,212,255,0.4)" stroke-width="0.8"/>
+
+          <!-- Cheek accent lines -->
+          <path d="M22 100 L36 96" stroke="rgba(0,212,255,0.12)" stroke-width="0.8" stroke-linecap="round"/>
+          <path d="M138 100 L124 96" stroke="rgba(0,212,255,0.12)" stroke-width="0.8" stroke-linecap="round"/>
+
+          <!-- Status LED dots -->
+          <circle class="status-led-l" cx="24" cy="54" r="2.5" fill="#00ff9d" filter="url(#glowSoft)"/>
+          <circle cx="24" cy="54" r="1" fill="#fff" opacity="0.6"/>
+          <circle class="status-led-r" cx="136" cy="54" r="2.5" fill="#00d4ff" filter="url(#glowSoft)"/>
+          <circle cx="136" cy="54" r="1" fill="#fff" opacity="0.5"/>
+        </svg>
+      </div>
+    </div>
+    <div class="aura-identity">
+      <div class="aura-name">AURA</div>
+      <div class="aura-tagline">AI Companion Workspace v2.0</div>
+      <div class="aura-emotion-badge" id="emotionBadge">
+        <span id="emotionIcon">✦</span>
+        <span id="emotionText">STANDBY</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- WORKSPACE -->
+  <div class="workspace">
+
+    <!-- MIC PANEL (desktop sidebar) -->
+    <div class="mic-panel">
+      <button class="mic-button" id="micBtn" onclick="toggleContinuousListen()" title="Toggle Continuous Listening">
+        <svg width="16" height="20" viewBox="0 0 16 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="1" width="8" height="12" rx="4" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M1 9c0 4 2.5 7 7 7s7-3 7-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="8" y1="16" x2="8" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="5" y1="19" x2="11" y2="19" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div class="waveform-container" id="waveformSidebar">
+        <div class="wave-bar" style="height:4px"></div>
+        <div class="wave-bar" style="height:4px"></div>
+        <div class="wave-bar" style="height:4px"></div>
+        <div class="wave-bar" style="height:4px"></div>
+        <div class="wave-bar" style="height:4px"></div>
+      </div>
+      <div class="mic-label">MIC</div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+
+      <!-- CHAT MODE -->
+      <div class="mode-panel active" id="chatMode">
+        <div class="chat-panel">
+          <div class="chat-header">
+            <div class="chat-header-title">
+              <span style="font-size:0.7rem;color:var(--aura-primary);">&#9632;</span> AURA CHAT
+              <div class="status-dot" style="margin-left:4px"></div>
+            </div>
+            <div class="chat-header-actions">
+              <button class="icon-btn" onclick="clearChat()" title="Clear chat">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+              <button class="icon-btn" onclick="exportChat()" title="Export chat">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3M1 10h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="icon-btn" onclick="toggleTTS()" id="ttsToggle" title="Toggle TTS">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4H4L7 1v10L4 8H2V4z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M9 4c.8.6 1 1.6 0 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick commands -->
+          <div class="quick-cmds">
+            <button class="quick-cmd" onclick="quickSend('What can you do?')">What can you do?</button>
+            <button class="quick-cmd" onclick="quickSend('Tell me a fun fact')">Fun fact</button>
+            <button class="quick-cmd" onclick="quickSend('Help me brainstorm ideas for my project')">Brainstorm</button>
+            <button class="quick-cmd" onclick="quickSend('Explain quantum computing simply')">Quantum computing</button>
+            <button class="quick-cmd" onclick="quickSend('Write a motivational quote')">Motivate me</button>
+          </div>
+
+          <div class="chat-messages" id="chatMessages">
+            <!-- Initial greeting injected by JS -->
+          </div>
+
+          <div class="chat-input-area">
+            <div class="chat-input-row">
+              <textarea
+                class="chat-textarea"
+                id="chatInput"
+                placeholder="Ask AURA anything..."
+                rows="1"
+                onkeydown="handleChatKey(event)"
+                oninput="autoResizeTextarea(this)"
+              ></textarea>
+              <button class="voice-btn" id="voiceInputBtn" onclick="startVoiceInput()" title="Voice input">
+                <svg width="14" height="18" viewBox="0 0 14 18" fill="none"><rect x="3" y="1" width="8" height="10" rx="4" stroke="currentColor" stroke-width="1.4"/><path d="M1 8c0 3.5 2 6 6 6s6-2.5 6-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="7" y1="14" x2="7" y2="17" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              </button>
+              <button class="send-btn" onclick="sendChatMessage()" title="Send">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 13L13 7 1 1v5l8 1-8 1v5z" fill="currentColor"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CODE MODE -->
+      <div class="mode-panel" id="codeMode">
+        <div class="code-panel">
+
+          <div class="code-input-card">
+            <div class="code-input-label">CODE SYNTHESIS TERMINAL</div>
+            <textarea
+              class="code-prompt-input"
+              id="codePrompt"
+              placeholder="Describe what you want to build... e.g. 'Create a beautiful animated landing page with a hero section, gradient background, and smooth scroll'"
+            ></textarea>
+            <div class="code-actions-row">
+              <div class="code-tech-pills">
+                <button class="tech-pill active" onclick="setTech('html')" id="techHTML">HTML/CSS/JS</button>
+                <button class="tech-pill" onclick="setTech('react')" id="techReact">React</button>
+                <button class="tech-pill" onclick="setTech('python')" id="techPython">Python</button>
+                <button class="tech-pill" onclick="setTech('node')" id="techNode">Node.js</button>
+                <button class="tech-pill" onclick="setTech('any')" id="techAny">Auto-detect</button>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <button class="pane-btn" onclick="resetCodeTerminal()" title="Reset terminal" style="padding:7px 14px;font-size:0.75rem;opacity:0.75;">Reset</button>
+                <button class="generate-btn" id="generateBtn" onclick="generateCode()">
+                  <span id="generateBtnText">SYNTHESIZE CODE</span>
+                </button>
+              </div>
+            </div>
+            <div class="progress-bar-container" style="margin-top:12px;border-radius:4px">
+              <div class="progress-bar-fill" id="codeProgress"></div>
+            </div>
+          </div>
+
+          <div class="code-editor-split">
+            <div class="editor-pane">
+              <div class="pane-header">
+                <div class="pane-title">⟨/⟩ GENERATED CODE</div>
+                <div class="pane-actions">
+                  <button class="pane-btn" onclick="copyCode()">Copy</button>
+                  <button class="pane-btn" onclick="downloadCode()">Download</button>
+                </div>
+              </div>
+              <div class="code-display" id="codeDisplay">
+                <div class="code-placeholder">
+                  ✦ &nbsp;AURA Code Synthesizer ready<br>
+                  ∙ &nbsp;Enter a prompt and click Synthesize<br>
+                  ∙ &nbsp;Powered by Groq + Gemini APIs<br>
+                  ∙ &nbsp;Or say "generate a button component"<br>
+                  <br>
+                  <span class="code-cursor"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="preview-pane">
+              <div class="pane-header">
+                <div class="pane-title preview-title">⬡ LIVE PREVIEW</div>
+                <div class="pane-actions">
+                  <button class="pane-btn" onclick="refreshPreview()">↺ Refresh</button>
+                  <button class="pane-btn" onclick="openInNewTab()">⤢ Expand</button>
+                </div>
+              </div>
+              <div class="preview-empty" id="previewEmpty">
+                <div class="preview-empty-icon">⬡</div>
+                <div>Preview renders HTML/CSS/JS projects</div>
+              </div>
+              <iframe class="preview-frame" id="previewFrame" style="display:none" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /main-content -->
+  </div><!-- /workspace -->
+
+  <!-- Mobile bottom nav -->
+  <nav class="mobile-nav" id="mobileNav">
+    <button class="nav-tab active" onclick="switchMode('chat')" id="chatTabMobile">Chat</button>
+    <button class="nav-tab" onclick="switchMode('code')" id="codeTabMobile">Code</button>
+    <button class="nav-tab" onclick="toggleContinuousListen()" id="micTabMobile">Mic</button>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- Voice overlay -->
+<div class="voice-overlay" id="voiceOverlay">
+  <div class="voice-overlay-waveform">
+    <div class="overlay-wave-bar" style="height:6px"></div>
+    <div class="overlay-wave-bar" style="height:12px"></div>
+    <div class="overlay-wave-bar" style="height:18px"></div>
+    <div class="overlay-wave-bar" style="height:12px"></div>
+    <div class="overlay-wave-bar" style="height:6px"></div>
+  </div>
+  <div>
+    <div class="voice-overlay-text" id="voiceOverlayLabel">LISTENING...</div>
+    <div class="voice-overlay-command" id="voiceOverlayCmd"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT — FULL AURA WORKSPACE LOGIC
+     ============================================================ -->
+<script>
+'use strict';
+
+/* -------- CONFIG -------- */
+let CONFIG = {
+  // GROQ key lives in Cloudflare Worker — never stored here
+  groqModel: 'llama-3.3-70b-versatile',
+};
+
+let currentMode = 'chat';
+let currentTech = 'html';
+let ttsEnabled = false;
+let generatedCode = '';
+let isSpeaking = false;
+let voiceInputActive = false;
+
+/* -------- PARTICLE CANVAS -------- */
+(function initCanvas() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let W, H;
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  class Particle {
+    constructor() { this.reset(); }
+    reset() {
+      this.x = Math.random() * W;
+      this.y = Math.random() * H;
+      this.vx = (Math.random() - 0.5) * 0.3;
+      this.vy = (Math.random() - 0.5) * 0.3;
+      this.size = Math.random() * 1.5 + 0.3;
+      this.alpha = Math.random() * 0.4 + 0.05;
+      this.color = Math.random() > 0.7 ? '#7b2fff' : '#00d4ff';
+    }
+    update() {
+      this.x += this.vx; this.y += this.vy;
+      if (this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset();
+    }
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.globalAlpha = this.alpha;
+      ctx.fill();
+    }
+  }
+
+  for (let i = 0; i < 120; i++) particles.push(new Particle());
+
+  function loop() {
+    ctx.clearRect(0, 0, W, H);
+    // Connect close particles
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = '#00d4ff';
+          ctx.globalAlpha = (1 - dist / 120) * 0.04;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    particles.forEach(p => { p.update(); p.draw(); });
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
+
+/* -------- FACE PARTICLES -------- */
+(function initFaceParticles() {
+  const container = document.getElementById('faceParticles');
+  const colors = ['#00d4ff', '#7b2fff', '#00ff9d', '#ff6b35'];
+  for (let i = 0; i < 8; i++) {
+    const p = document.createElement('div');
+    p.className = 'face-particle';
+    const color = colors[i % colors.length];
+    p.style.cssText = `
+      background:${color};
+      box-shadow:0 0 6px ${color};
+      top:50%;left:50%;
+      transform-origin:0 0;
+      animation-duration:${6 + i * 1.8}s;
+      animation-delay:${-i * 1.1}s;
+    `;
+    container.appendChild(p);
+  }
+})();
+
+/* -------- EMOTION SYSTEM -------- */
+const emotions = {
+  standby: { icon: '✦', text: 'STANDBY', mouth: 'M58 108 Q80 114 102 108' },
+  listening: { icon: '👂', text: 'LISTENING', mouth: 'M58 108 Q80 116 102 108' },
+  thinking: { icon: '🧠', text: 'THINKING', mouth: 'M65 110 Q80 108 95 110' },
+  speaking: { icon: '💬', text: 'SPEAKING', mouth: 'M58 106 Q80 120 102 106' },
+  coding: { icon: '⌨️', text: 'SYNTHESIZING', mouth: 'M62 108 Q80 112 98 108' },
+  happy: { icon: '✨', text: 'READY', mouth: 'M55 106 Q80 122 105 106' },
+};
+
+function setEmotion(state) {
+  const em = emotions[state] || emotions.standby;
+  document.getElementById('emotionIcon').textContent = em.icon;
+  document.getElementById('emotionText').textContent = em.text;
+  document.getElementById('mouthPath').setAttribute('d', em.mouth);
+  const face = document.getElementById('auraFace');
+  face.className = 'aura-face ' + state;
+}
+
+/* -------- MODE SWITCHING -------- */
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(mode + 'Mode').classList.add('active');
+  // Update tabs
+  ['chatTab', 'codeTab'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+  ['chatTabMobile', 'codeTabMobile'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+  const tabId = mode + 'Tab';
+  const tabMobId = mode + 'TabMobile';
+  if (document.getElementById(tabId)) document.getElementById(tabId).classList.add('active');
+  if (document.getElementById(tabMobId)) document.getElementById(tabMobId).classList.add('active');
+  setEmotion(mode === 'code' ? 'coding' : 'happy');
+  setTimeout(() => setEmotion('standby'), 2000);
+  // Reset code terminal each time we enter Code mode for a clean slate
+  if (mode === 'code') resetCodeTerminal();
+}
+
+/* -------- TOAST -------- */
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+/* -------- CHAT FUNCTIONS -------- */
+const chatMessages = document.getElementById('chatMessages');
+let chatHistory = []; // For context
+
+function addMessage(role, content, animate = true) {
+  const div = document.createElement('div');
+  div.className = 'message ' + role;
+  const avatar = role === 'user' ? '👤' : '✦';
+  div.innerHTML = `
+    <div class="msg-avatar">${avatar}</div>
+    <div class="msg-bubble">
+      ${formatMessageContent(content)}
+      ${role === 'assistant' ? `<div><button class="tts-btn" onclick="speakText(\`${escapeBacktick(content)}\`)">🔊 Play</button></div>` : ''}
+    </div>
+  `;
+  if (!animate) div.style.animation = 'none';
+  chatMessages.appendChild(div);
+  scrollToBottom();
+  return div;
+}
+
+function escapeBacktick(s) { return s.replace(/`/g, '\\`').replace(/\$/g, '\\$'); }
+
+function formatMessageContent(text) {
+  // Basic markdown-like formatting
+  return text
+    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+}
+
+function scrollToBottom() {
+  setTimeout(() => {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }, 50);
+}
+
+function showTypingIndicator() {
+  const div = document.createElement('div');
+  div.className = 'message assistant';
+  div.id = 'typingIndicator';
+  div.innerHTML = `
+    <div class="msg-avatar">✦</div>
+    <div class="typing-indicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+  `;
+  chatMessages.appendChild(div);
+  scrollToBottom();
+}
+
+function removeTypingIndicator() {
+  const ti = document.getElementById('typingIndicator');
+  if (ti) ti.remove();
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  autoResizeTextarea(input);
+  addMessage('user', text);
+  chatHistory.push({ role: 'user', content: text });
+  showTypingIndicator();
+  setEmotion('thinking');
+
+  try {
+    const reply = await callGroq(chatHistory);
+    removeTypingIndicator();
+    addMessage('assistant', reply);
+    chatHistory.push({ role: 'assistant', content: reply });
+    setEmotion('speaking');
+    if (ttsEnabled) speakText(reply);
+    setTimeout(() => setEmotion('standby'), 3000);
+  } catch (err) {
+    removeTypingIndicator();
+    addMessage('assistant', `Error: ${err.message}`);
+    setEmotion('standby');
+  }
+}
+
+async function callGroq(messages, systemPrompt = null, maxTokens = 1200, temperature = 0.7, modelOverride = null) {
+  // ── Paste your Cloudflare Worker URL here after you deploy it ──
+  const PROXY_URL = 'https://aura-groq-proxy.swastik-contacts55.workers.dev/';
+  // ──────────────────────────────────────────────────────────────
+
+  const sysMsg = systemPrompt || `You are AURA, a sophisticated AI companion in a futuristic workspace. You're helpful, insightful, and occasionally reference your nature as an AI. Keep responses concise but meaningful. Use markdown formatting when helpful.`;
+
+  const response = await fetch(PROXY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: modelOverride || CONFIG.groqModel,
+      messages: [
+        { role: 'system', content: sysMsg },
+        ...messages.slice(-12),
+      ],
+      max_tokens: maxTokens,
+      temperature: temperature,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${response.status}`);
+  }
+  const data = await response.json();
+  return data.choices[0]?.message?.content || '(no response)';
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChatMessage();
+  }
+}
+
+function autoResizeTextarea(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function quickSend(text) {
+  document.getElementById('chatInput').value = text;
+  sendChatMessage();
+}
+
+function clearChat() {
+  chatMessages.innerHTML = '';
+  chatHistory = [];
+  initGreeting();
+}
+
+function exportChat() {
+  const msgs = [...chatMessages.querySelectorAll('.message')].map(m => {
+    const role = m.classList.contains('user') ? 'You' : 'AURA';
+    const content = m.querySelector('.msg-bubble')?.innerText || '';
+    return `[${role}]: ${content}`;
+  }).join('\n\n');
+  const blob = new Blob([msgs], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `aura-chat-${Date.now()}.txt`;
+  a.click();
+}
+
+function toggleTTS() {
+  ttsEnabled = !ttsEnabled;
+  document.getElementById('ttsToggle').textContent = ttsEnabled ? '🔊' : '🔇';
+  showToast(ttsEnabled ? '🔊 TTS enabled' : '🔇 TTS disabled');
+}
+
+/* -------- VOICE INPUT -------- */
+let voiceRecognition = null;
+let isVoiceInputActive = false;
+
+function startVoiceInput() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('⚠️ Speech recognition not supported in this browser', 'error');
+    return;
+  }
+  const btn = document.getElementById('voiceInputBtn');
+  if (isVoiceInputActive) {
+    if (voiceRecognition) voiceRecognition.stop();
+    isVoiceInputActive = false;
+    btn.classList.remove('recording');
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  voiceRecognition = new SR();
+  voiceRecognition.lang = 'en-US';
+  voiceRecognition.interimResults = true;
+  voiceRecognition.onstart = () => { isVoiceInputActive = true; btn.classList.add('recording'); };
+  voiceRecognition.onresult = (e) => {
+    const transcript = [...e.results].map(r => r[0].transcript).join('');
+    document.getElementById('chatInput').value = transcript;
+    autoResizeTextarea(document.getElementById('chatInput'));
+  };
+  voiceRecognition.onend = () => {
+    isVoiceInputActive = false;
+    btn.classList.remove('recording');
+    const val = document.getElementById('chatInput').value.trim();
+    if (val) sendChatMessage();
+  };
+  voiceRecognition.onerror = () => {
+    isVoiceInputActive = false;
+    btn.classList.remove('recording');
+  };
+  voiceRecognition.start();
+}
+
+/* -------- TTS -------- */
+function speakText(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const clean = text.replace(/<[^>]+>/g, '').replace(/[✦∙⌨️💬👂🧠⚡]/g, '');
+  const utter = new SpeechSynthesisUtterance(clean.substring(0, 500));
+  utter.rate = 1.05;
+  utter.pitch = 1.1;
+  // Try to find a good voice
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v => v.name.includes('Google') && v.lang === 'en-US') ||
+                    voices.find(v => v.lang === 'en-US') || voices[0];
+  if (preferred) utter.voice = preferred;
+  utter.onstart = () => { isSpeaking = true; setEmotion('speaking'); };
+  utter.onend = () => { isSpeaking = false; setEmotion('standby'); };
+  window.speechSynthesis.speak(utter);
+}
+
+/* -------- CONTINUOUS LISTENING -------- */
+let continuousRecognition = null;
+let isListening = false;
+let listeningEnabled = false;
+let restartTimeout = null;
+
+function toggleContinuousListen() {
+  listeningEnabled = !listeningEnabled;
+  const btn = document.getElementById('micBtn');
+  const mobileTab = document.getElementById('micTabMobile');
+  if (listeningEnabled) {
+    startContinuousListen();
+    btn && btn.classList.add('active', 'listening');
+    if (mobileTab) mobileTab.style.color = 'var(--aura-green)';
+    showToast('🎤 Continuous listening enabled', 'success');
+  } else {
+    stopContinuousListen();
+    btn && btn.classList.remove('active', 'listening');
+    if (mobileTab) mobileTab.style.color = '';
+    showToast('🔇 Continuous listening disabled');
+  }
+}
+
+function startContinuousListen() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('⚠️ Speech recognition not supported', 'error');
+    listeningEnabled = false;
+    return;
+  }
+  if (isListening) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  continuousRecognition = new SR();
+  continuousRecognition.continuous = true;
+  continuousRecognition.interimResults = true;
+  continuousRecognition.lang = 'en-US';
+
+  continuousRecognition.onstart = () => {
+    isListening = true;
+    setEmotion('listening');
+    showVoiceOverlay('🎤 LISTENING...');
+    animateWaveform(true);
+  };
+
+  continuousRecognition.onresult = (e) => {
+    const last = e.results[e.results.length - 1];
+    const transcript = last[0].transcript.toLowerCase().trim();
+    if (last.isFinal) {
+      updateVoiceOverlay(transcript);
+      processVoiceCommand(transcript);
+    } else {
+      showVoiceOverlay('🎤 LISTENING...', transcript);
+    }
+  };
+
+  continuousRecognition.onerror = (e) => {
+    if (e.error === 'no-speech' || e.error === 'audio-capture') {
+      // Silently restart
+    }
+    isListening = false;
+    if (listeningEnabled) scheduleRestart();
+  };
+
+  continuousRecognition.onend = () => {
+    isListening = false;
+    if (listeningEnabled) scheduleRestart();
+    else {
+      hideVoiceOverlay();
+      animateWaveform(false);
+      setEmotion('standby');
+    }
+  };
+
+  try { continuousRecognition.start(); } catch (e) { /* already started */ }
+}
+
+function stopContinuousListen() {
+  if (restartTimeout) clearTimeout(restartTimeout);
+  if (continuousRecognition) {
+    try { continuousRecognition.stop(); } catch (e) {}
+    continuousRecognition = null;
+  }
+  isListening = false;
+  hideVoiceOverlay();
+  animateWaveform(false);
+  setEmotion('standby');
+}
+
+function scheduleRestart() {
+  if (restartTimeout) clearTimeout(restartTimeout);
+  restartTimeout = setTimeout(() => {
+    if (listeningEnabled) startContinuousListen();
+  }, 800);
+}
+
+function processVoiceCommand(transcript) {
+  const t = transcript.toLowerCase();
+  let handled = false;
+
+  // Navigation commands
+  if (t.includes('chat mode') || t.includes('open chat') || t.includes('start chat') || t.includes('go to chat')) {
+    switchMode('chat');
+    showVoiceOverlay('✅ SWITCHING TO CHAT', transcript);
+    handled = true;
+  } else if (t.includes('code mode') || t.includes('open code') || t.includes('coding mode') || t.includes('go to code')) {
+    switchMode('code');
+    showVoiceOverlay('✅ SWITCHING TO CODE', transcript);
+    handled = true;
+  }
+  // Open apps
+  else if (t.includes('open youtube') || t.includes('go to youtube')) {
+    window.open('https://youtube.com', '_blank');
+    showVoiceOverlay('▶ OPENING YOUTUBE', transcript);
+    handled = true;
+  } else if (t.includes('open spotify') || t.includes('go to spotify')) {
+    window.open('https://spotify.com', '_blank');
+    showVoiceOverlay('🎵 OPENING SPOTIFY', transcript);
+    handled = true;
+  } else if (t.includes('open github') || t.includes('go to github')) {
+    window.open('https://github.com', '_blank');
+    showVoiceOverlay('💻 OPENING GITHUB', transcript);
+    handled = true;
+  } else if (t.includes('open google') || t.includes('search google')) {
+    const query = t.replace(/open google|search google|search for|search/g, '').trim();
+    window.open(`https://google.com/search?q=${encodeURIComponent(query)}`, '_blank');
+    showVoiceOverlay('🔍 SEARCHING GOOGLE', transcript);
+    handled = true;
+  } else if (t.includes('clear chat')) {
+    clearChat();
+    showVoiceOverlay('🗑 CHAT CLEARED', transcript);
+    handled = true;
+  } else if (t.includes('generate') || t.includes('write code') || t.includes('create code')) {
+    switchMode('code');
+    const prompt = t.replace(/generate|write code for|create code for|code/g, '').trim();
+    if (prompt) document.getElementById('codePrompt').value = prompt;
+    showVoiceOverlay('⚡ READY TO GENERATE', transcript);
+    handled = true;
+  }
+
+  // If not a command, send to chat
+  if (!handled && currentMode === 'chat' && t.length > 3) {
+    if (continuousRecognition) continuousRecognition.stop();
+    listeningEnabled = false;
+    document.getElementById('micBtn')?.classList.remove('active', 'listening');
+    document.getElementById('chatInput').value = transcript;
+    sendChatMessage();
+    setTimeout(() => {
+      listeningEnabled = true;
+      startContinuousListen();
+      document.getElementById('micBtn')?.classList.add('active', 'listening');
+    }, 4000);
+  }
+
+  setTimeout(() => {
+    if (listeningEnabled) showVoiceOverlay('🎤 LISTENING...');
+  }, 2000);
+}
+
+function showVoiceOverlay(label, cmd = '') {
+  const ov = document.getElementById('voiceOverlay');
+  document.getElementById('voiceOverlayLabel').textContent = label;
+  document.getElementById('voiceOverlayCmd').textContent = cmd;
+  ov.classList.add('visible');
+}
+
+function updateVoiceOverlay(cmd) {
+  document.getElementById('voiceOverlayCmd').textContent = cmd;
+}
+
+function hideVoiceOverlay() {
+  document.getElementById('voiceOverlay').classList.remove('visible');
+}
+
+/* -------- WAVEFORM ANIMATION -------- */
+let waveInterval = null;
+
+function animateWaveform(active) {
+  const bars = document.querySelectorAll('#waveformSidebar .wave-bar');
+  if (active) {
+    waveInterval = setInterval(() => {
+      bars.forEach(bar => {
+        const h = Math.random() * 28 + 4;
+        bar.style.height = h + 'px';
+      });
+    }, 100);
+  } else {
+    clearInterval(waveInterval);
+    bars.forEach(bar => bar.style.height = '4px');
+  }
+}
+
+/* -------- CODE GENERATION (100% GROQ) -------- */
+function setTech(tech) {
+  currentTech = tech;
+  document.querySelectorAll('.tech-pill').forEach(p => p.classList.remove('active'));
+  document.getElementById('tech' + tech.charAt(0).toUpperCase() + tech.slice(1)).classList.add('active');
+}
+
+function resetCodeTerminal() {
+  generatedCode = '';
+  document.getElementById('codePrompt').value = '';
+  document.getElementById('codeDisplay').innerHTML = `
+    <div class="code-placeholder">
+      &#10022; &nbsp;AURA Code Synthesizer ready<br>
+      &middot; &nbsp;Enter a prompt and click Synthesize<br>
+      &middot; &nbsp;Powered by Groq API<br>
+      &middot; &nbsp;Or say "generate a button component"<br>
+      <br>
+      <span class="code-cursor"></span>
+    </div>`;
+  const frame = document.getElementById('previewFrame');
+  const empty = document.getElementById('previewEmpty');
+  frame.style.display = 'none';
+  empty.style.display = 'flex';
+  setProgress(0);
+  document.getElementById('generateBtnText').textContent = 'SYNTHESIZE CODE';
+  document.getElementById('generateBtn').disabled = false;
+}
+
+async function generateCode() {
+  const prompt = document.getElementById('codePrompt').value.trim();
+  if (!prompt) { showToast('Please enter a prompt', 'error'); return; }
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  document.getElementById('generateBtnText').innerHTML = '<span class="spinner" style="display:inline-block;width:14px;height:14px;margin-right:8px;vertical-align:middle"></span> SYNTHESIZING...';
+  setEmotion('coding');
+  setProgress(10);
+
+  const techMap = {
+    html: 'HTML5, CSS3, and vanilla JavaScript',
+    react: 'React with hooks and Tailwind CSS',
+    python: 'Python 3',
+    node: 'Node.js with Express',
+    any: 'the most appropriate technology',
+  };
+  const techStr = techMap[currentTech] || 'appropriate technology';
+
+  const codeSystemPrompt = `You are an elite ${techStr} engineer. Your ONLY job is to produce complete, runnable, production-quality code.
+
+RULES (never break these):
+1. Output ONLY a single fenced code block — no prose, no explanations before or after.
+2. The code block must start with \`\`\`${currentTech === 'html' ? 'html' : currentTech === 'react' ? 'jsx' : currentTech === 'python' ? 'python' : currentTech === 'node' ? 'js' : 'html'} and end with \`\`\`.
+3. The code must be complete and self-contained — no TODO stubs, no placeholder comments.
+4. For HTML: include <!DOCTYPE html>, full CSS in <style>, full JS in <script>.
+5. For React: export default function App() with all state, no missing imports.
+6. Add meaningful inline comments on non-obvious logic.
+7. Make it visually polished and impressive.`;
+
+  try {
+    setProgress(30);
+    generatedCode = await callGroq(
+      [{ role: 'user', content: `Build this: ${prompt}` }],
+      codeSystemPrompt,
+      8000,
+      0.35,
+      'llama-3.3-70b-versatile'
+    );
+    setProgress(80);
+
+    generatedCode = extractCode(generatedCode);
+    displayCode(generatedCode);
+    setProgress(100);
+    setEmotion('happy');
+    showToast('Code synthesized!', 'success');
+
+    if (currentTech === 'html' || currentTech === 'any') {
+      if (generatedCode.includes('<') && generatedCode.includes('>')) {
+        renderPreview(generatedCode);
+      }
+    }
+    setTimeout(() => {
+      setProgress(0);
+      setEmotion('standby');
+      // Re-enable button and restore label; terminal stays populated until user resets
+      btn.disabled = false;
+      document.getElementById('generateBtnText').textContent = 'SYNTHESIZE CODE';
+    }, 1200);
+  } catch (err) {
+    showToast(err.message, 'error');
+    setEmotion('standby');
+    setProgress(0);
+    btn.disabled = false;
+    document.getElementById('generateBtnText').textContent = 'SYNTHESIZE CODE';
+  }
+}
+
+function extractCode(text) {
+  // Try to extract code from markdown code blocks
+  const match = text.match(/```(?:html|css|js|javascript|python|jsx|tsx|typescript|node)?\n?([\s\S]+?)```/i);
+  if (match) return match[1].trim();
+  // If no code block, return the whole text
+  return text.trim();
+}
+
+function displayCode(code) {
+  const display = document.getElementById('codeDisplay');
+  display.innerHTML = '';
+  const pre = document.createElement('pre');
+  pre.style.cssText = 'margin:0;white-space:pre-wrap;word-break:break-word;';
+  
+  // Syntax highlighting (simple)
+  const highlighted = syntaxHighlight(code);
+  pre.innerHTML = highlighted;
+  display.appendChild(pre);
+  
+  // Animate typing effect
+  animateCodeDisplay(display, pre, code);
+}
+
+function animateCodeDisplay(container, pre, code) {
+  const lines = code.split('\n');
+  let lineIdx = 0;
+  pre.innerHTML = '';
+  
+  const cursor = document.createElement('span');
+  cursor.className = 'code-cursor';
+  
+  function addLine() {
+    if (lineIdx >= lines.length) {
+      cursor.remove();
+      pre.innerHTML = syntaxHighlight(code);
+      return;
+    }
+    const line = document.createTextNode(lines[lineIdx] + '\n');
+    pre.appendChild(line);
+    pre.appendChild(cursor);
+    container.scrollTop = container.scrollHeight;
+    lineIdx++;
+    const delay = Math.max(8, Math.min(30, 800 / lines.length));
+    setTimeout(addLine, delay);
+  }
+  addLine();
+}
+
+function syntaxHighlight(code) {
+  return code
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    // Comments
+    .replace(/(\/\/[^\n]*|\/\*[\s\S]*?\*\/|#[^\n]*)/g, '<span class="token-comment">$1</span>')
+    // Strings
+    .replace(/(["'`])([^"'`\n]*)\1/g, '<span class="token-string">$1$2$1</span>')
+    // Keywords
+    .replace(/\b(const|let|var|function|return|if|else|for|while|class|import|export|from|async|await|new|this|try|catch|typeof|void|in|of|do|switch|case|break|continue|default|extends|super|null|undefined|true|false|def|print|elif|pass|and|or|not|is|lambda|with|yield|import|from|as|global|nonlocal|raise|except|finally|return)\b/g, '<span class="token-keyword">$1</span>')
+    // Functions
+    .replace(/([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g, '<span class="token-function">$1</span>(')
+    // Numbers
+    .replace(/\b(\d+\.?\d*)\b/g, '<span class="token-number">$1</span>');
+}
+
+function renderPreview(code) {
+  const frame = document.getElementById('previewFrame');
+  const empty = document.getElementById('previewEmpty');
+  frame.style.display = 'block';
+  empty.style.display = 'none';
+  try {
+    const doc = frame.contentDocument || frame.contentWindow.document;
+    doc.open(); doc.write(code); doc.close();
+  } catch (e) {
+    frame.srcdoc = code;
+  }
+}
+
+function refreshPreview() {
+  if (generatedCode) renderPreview(generatedCode);
+}
+
+function openInNewTab() {
+  if (!generatedCode) return;
+  const blob = new Blob([generatedCode], { type: 'text/html' });
+  window.open(URL.createObjectURL(blob), '_blank');
+}
+
+function copyCode() {
+  if (!generatedCode) { showToast('No code to copy', 'error'); return; }
+  navigator.clipboard.writeText(generatedCode).then(() => showToast('Code copied!', 'success'));
+}
+
+function downloadCode() {
+  if (!generatedCode) { showToast('No code to download', 'error'); return; }
+  const ext = { html: 'html', react: 'jsx', python: 'py', node: 'js', any: 'html' }[currentTech] || 'txt';
+  const blob = new Blob([generatedCode], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `aura-code-${Date.now()}.${ext}`;
+  a.click();
+  showToast('Code downloaded!', 'success');
+}
+
+function setProgress(pct) {
+  document.getElementById('codeProgress').style.width = pct + '%';
+}
+
+/* -------- INITIAL GREETING -------- */
+function initGreeting() {
+  const greetings = [
+    `**Hello! I'm AURA**\n\nI'm your AI companion in this futuristic workspace. I can help you with:\n\n- **Conversations** — ask me anything\n- **Code generation** — switch to Code Mode\n- **Voice commands** — enable the mic to control me by voice\n- **Web navigation** — say "Open YouTube" or "Open Spotify"\n\nWhat shall we explore together?`,
+  ];
+  addMessage('assistant', greetings[0], false);
+}
+
+/* -------- BLINK ANIMATION (JS-controlled) -------- */
+(function blinkLoop() {
+  function blink(type) {
+    const leftEye = document.querySelector('.eye-left');
+    const rightEye = document.querySelector('.eye-right');
+    if (!leftEye || !rightEye) return;
+
+    if (type === 'wink-right') {
+      // Wink right eye only
+      rightEye.style.transform = 'scaleY(0.05)';
+      setTimeout(() => { rightEye.style.transform = 'scaleY(1)'; }, 130);
+    } else if (type === 'double') {
+      // Double blink
+      leftEye.style.transform = 'scaleY(0.05)';
+      rightEye.style.transform = 'scaleY(0.05)';
+      setTimeout(() => {
+        leftEye.style.transform = 'scaleY(1)';
+        rightEye.style.transform = 'scaleY(1)';
+        setTimeout(() => {
+          leftEye.style.transform = 'scaleY(0.05)';
+          rightEye.style.transform = 'scaleY(0.05)';
+          setTimeout(() => {
+            leftEye.style.transform = 'scaleY(1)';
+            rightEye.style.transform = 'scaleY(1)';
+          }, 100);
+        }, 200);
+      }, 100);
+    } else {
+      // Normal blink
+      leftEye.style.transform = 'scaleY(0.05)';
+      rightEye.style.transform = 'scaleY(0.05)';
+      setTimeout(() => {
+        leftEye.style.transform = 'scaleY(1)';
+        rightEye.style.transform = 'scaleY(1)';
+      }, 120);
+    }
+  }
+
+  let blinkCount = 0;
+  function scheduleNext() {
+    const delay = 2500 + Math.random() * 4500;
+    setTimeout(() => {
+      blinkCount++;
+      const r = Math.random();
+      if (blinkCount % 8 === 0) blink('double');
+      else if (r < 0.12) blink('wink-right');
+      else blink('normal');
+      scheduleNext();
+    }, delay);
+  }
+  setTimeout(scheduleNext, 1500);
+})();
+
+/* -------- PUPIL TRACKING — ULTRA SMOOTH -------- */
+(function initPupilTracking() {
+  let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
+  // Current interpolated positions for each pupil
+  let curLX = 0, curLY = 0, curRX = 0, curRY = 0;
+  // Target positions
+  let tgtLX = 0, tgtLY = 0, tgtRX = 0, tgtRY = 0;
+  const LERP = 0.10; // Lower = smoother/lazier; 0.08–0.14 feels alive
+  const MAX_DIST = 5.5;
+
+  document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  });
+
+  function computeTarget(eyeCx, eyeCy, faceRect) {
+    // Map eye SVG coords to screen coords
+    const scaleX = faceRect.width / 160;
+    const scaleY = faceRect.height / 160;
+    const eyeScreenX = faceRect.left + eyeCx * scaleX;
+    const eyeScreenY = faceRect.top  + eyeCy * scaleY;
+    const dx = mouseX - eyeScreenX;
+    const dy = mouseY - eyeScreenY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const maxPx = Math.max(faceRect.width, faceRect.height) * 0.38;
+    // Sigmoid-style clamping so movement is smooth near centre
+    const factor = Math.min(1, dist / maxPx);
+    const smooth = factor * factor * (3 - 2 * factor); // smoothstep
+    const clamped = smooth * MAX_DIST;
+    if (dist === 0) return { x: 0, y: 0 };
+    return { x: (dx / dist) * clamped, y: (dy / dist) * clamped };
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function tick() {
+    const face = document.getElementById('auraFace');
+    if (face) {
+      const rect = face.getBoundingClientRect();
+      // Left eye at SVG(55,68), Right eye at SVG(105,68)
+      const l = computeTarget(55, 68, rect);
+      const r = computeTarget(105, 68, rect);
+      tgtLX = l.x; tgtLY = l.y;
+      tgtRX = r.x; tgtRY = r.y;
+
+      // Lerp towards target
+      curLX = lerp(curLX, tgtLX, LERP);
+      curLY = lerp(curLY, tgtLY, LERP);
+      curRX = lerp(curRX, tgtRX, LERP);
+      curRY = lerp(curRY, tgtRY, LERP);
+
+      // Apply to all left pupils and right pupils separately
+      document.querySelectorAll('.pupil-left').forEach(p => {
+        p.style.transform = `translate(${curLX.toFixed(3)}px, ${curLY.toFixed(3)}px)`;
+      });
+      document.querySelectorAll('.pupil-right').forEach(p => {
+        p.style.transform = `translate(${curRX.toFixed(3)}px, ${curRY.toFixed(3)}px)`;
+      });
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+
+/* -------- KEYBOARD SHORTCUTS -------- */
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === '1') { e.preventDefault(); switchMode('chat'); }
+    if (e.key === '2') { e.preventDefault(); switchMode('code'); }
+    if (e.key === 'm') { e.preventDefault(); toggleContinuousListen(); }
+  }
+});
+
+/* -------- INIT -------- */
+initGreeting();
+
+// Animate face emotion on load
+setTimeout(() => setEmotion('happy'), 800);
+setTimeout(() => setEmotion('standby'), 3000);
+
+console.log(`
+╔═══════════════════════════════════════╗
+║   AURA AI Companion Workspace v2.0    ║
+║   Keyboard Shortcuts:                 ║
+║   Ctrl+1 → Chat Mode                 ║
+║   Ctrl+2 → Code Mode                 ║
+║   Ctrl+M → Toggle Mic                ║
+║   Ctrl+, → Settings                  ║
+╚═══════════════════════════════════════╝
+`);
+</script>
+
+</body>
+</html>
