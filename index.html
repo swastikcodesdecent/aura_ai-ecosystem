@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#04040f" />
+  <title>Catalyst x Amity University</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- PRELOADER — Catalyst 2K26 Style -->
+  <div id="preloader">
+    <div class="preloader-inner">
+
+      <!-- Top transmission label -->
+      <div class="loader-transmission">
+        <span class="loader-dash">——</span>
+        <span class="loader-dot-red">●</span>
+        <span class="loader-label-text">CATALYST 2K26 · SYSTEM BOOT</span>
+        <span class="loader-dot-red">●</span>
+        <span class="loader-dash">——</span>
+      </div>
+
+      <!-- HYPERNOVA TECH glow title -->
+      <div class="loader-title-wrap">
+        <h1 class="loader-title" id="loader-title">
+          <span class="hn-hyper">HYPER</span><span class="hn-nova">NOVA</span>
+        </h1>
+        <div class="loader-title-tech">TECH</div>
+      </div>
+
+      <!-- Tagline -->
+      <div class="loader-team">Building the Future · One Hack at a Time</div>
+
+      <!-- Colorful Christmas lights dots -->
+      <div class="loader-lights" id="loader-lights"></div>
+
+      <!-- Progress bar row -->
+      <div class="loader-bar-row">
+        <span class="loader-status" id="loader-status">OPENING THE GATE</span>
+        <div class="loader-bar-wrap">
+          <div class="loader-bar" id="loader-bar"></div>
+        </div>
+        <span class="loader-pct" id="loader-pct">0%</span>
+      </div>
+
+      <!-- Quote -->
+      <div class="loader-quote" id="loader-quote">"Friends don't lie." — calibrating the Upside Down...</div>
+
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div id="main" class="hidden">
+
+    <!-- NOISE TEXTURE OVERLAY -->
+    <div class="noise"></div>
+
+    <!-- GRID BG -->
+    <div class="grid-bg"></div>
+
+    <!-- HEADER -->
+    <header>
+      <div class="header-left">
+        <span class="tag">HyperNova</span><span class="tag-year"> Tech</span>
+      </div>
+      <div class="header-right" id="user-info" style="display:none;">
+        <img id="user-avatar" src="" alt="avatar" />
+        <div class="user-meta">
+          <span id="user-name"></span>
+          <span id="live-clock"></span>
+        </div>
+        <button id="logout-btn" title="Sign Out">⏏</button>
+      </div>
+    </header>
+
+    <!-- LOGIN SECTION (shown when NOT logged in) -->
+    <section id="login-section">
+      <div class="login-card">
+        <div class="login-badge">ACCESS REQUIRED</div>
+        <h2 class="login-title">Sign in to<br/><em>Unlock Your Spot</em></h2>
+        <p class="login-sub">The hackathon awaits. Authenticate to join the waitlist and get notified at launch.</p>
+        <button id="google-login-btn" class="google-btn">
+          <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 2.9l5.7-5.7C34.5 6.5 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 15.1 18.9 12 24 12c3.1 0 5.8 1.1 8 2.9l5.7-5.7C34.5 6.5 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5.1l-6.2-5.2C29.3 35.2 26.8 36 24 36c-5.3 0-9.7-3.1-11.3-7.5l-6.5 5C9.6 39.6 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.6l6.2 5.2C41.4 36.3 44 30.5 44 24c0-1.2-.1-2.4-.4-3.5z"/></svg>
+          Continue with Google
+        </button>
+        <div class="login-divider"><span>secured via firebase</span></div>
+      </div>
+    </section>
+
+    <!-- COMING SOON SECTION (shown when logged in) -->
+    <section id="coming-soon-section" class="hidden">
+
+      <!-- PROFILE CARD -->
+      <div class="profile-strip">
+        <div class="profile-welcome">
+          <img id="profile-avatar" src="" alt="" />
+          <div>
+            <div class="profile-greeting">Welcome back,</div>
+            <div class="profile-name" id="profile-name"></div>
+          </div>
+        </div>
+        <div class="profile-datetime">
+          <div class="profile-date" id="profile-date"></div>
+          <div class="profile-time" id="profile-time"></div>
+        </div>
+      </div>
+
+      <!-- HERO -->
+      <div class="hero">
+        <div class="hero-eyebrow">
+          <span class="blink-dot"></span>
+          COUNTDOWN TO LAUNCH
+        </div>
+        <h1 class="hero-title">
+          <span class="title-line">SOMETHING</span>
+          <span class="title-line accent">MASSIVE</span>
+          <span class="title-line">IS COMING</span>
+        </h1>
+        <p class="hero-sub">The next generation hackathon drops on May 22nd at 9:00 AM.<br/>You're on the list. Get ready to build.</p>
+      </div>
+
+      <!-- COUNTDOWN -->
+      <div class="countdown-wrap">
+        <div class="countdown-unit">
+          <div class="count-val" id="cd-days">00</div>
+          <div class="count-label">DAYS</div>
+        </div>
+        <div class="count-sep">:</div>
+        <div class="countdown-unit">
+          <div class="count-val" id="cd-hours">00</div>
+          <div class="count-label">HRS</div>
+        </div>
+        <div class="count-sep">:</div>
+        <div class="countdown-unit">
+          <div class="count-val" id="cd-mins">00</div>
+          <div class="count-label">MIN</div>
+        </div>
+        <div class="count-sep">:</div>
+        <div class="countdown-unit">
+          <div class="count-val" id="cd-secs">00</div>
+          <div class="count-label">SEC</div>
+        </div>
+      </div>
+
+      <!-- TARGET DATE -->
+      <div class="target-date">TARGET: 22 MAY 2026 · 09:00 AM IST</div>
+
+      <!-- FEATURES -->
+      <div class="features-row">
+        <div class="feature-card">
+          <div class="fc-icon">◈</div>
+          <div class="fc-title">Build Fast</div>
+          <div class="fc-desc">24-hour sprint to ship something real.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">◉</div>
+          <div class="fc-title">Win Big</div>
+          <div class="fc-desc">Prizes, recognition & opportunities.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">◍</div>
+          <div class="fc-title">No Pre-built</div>
+          <div class="fc-desc">Everything from scratch. Pure craft.</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+      <span>© 2026 HyperNova Tech</span>
+      <span class="footer-sep">·</span>
+      <span>ALL RIGHTS RESERVED</span>
+    </footer>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
